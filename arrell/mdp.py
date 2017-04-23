@@ -1,6 +1,7 @@
 # Tom O'Connell
 
 import numpy as np
+from . import util
 
 class MDP:
     """
@@ -45,7 +46,7 @@ class MDP:
     def initial_values(self, S):
         values = dict()
         for s in S:
-            values[s] = 0
+            values[s] = 0.0
         return values
 
 
@@ -94,27 +95,36 @@ class MDP:
 
     # TODO use matrix math
     def value(self, s, a):
-        a = self.policy[s]
         total = 0
         for s_prime in self.S:
             '''
-            print('s_prime', s_prime)
-            print('p entry', self.P[a, s, s_prime])
-            print('r entry', self.R[a, s, s_prime])
-            print('P', self.P)
-            print('R', self.R)
+            if s == 14 and s_prime == 15:
+                print('action', a)
+                print(self.P[a, s, s_prime] * \
+                (self.R[a, s, s_prime] + self.discount * self.values[s_prime]))
             '''
+
             total += self.P[a, s, s_prime] * \
                 (self.R[a, s, s_prime] + self.discount * self.values[s_prime])
+
+        '''
+        if s == 14:
+            print('total:', total)
+        '''
         return total
 
 
+    # TODO maybe dont need to do this? if pi is used right before?
     def maxvalue(self, s):
         return max([self.value(s, a) for a in self.A])
 
 
     def pi(self, s):
         actions = self.possible_actions(s)
+        '''
+        if s == 14:
+            print('possible actions', actions)
+        '''
         best = -1
         best_value = None
         # for each action possible in current state
@@ -122,6 +132,7 @@ class MDP:
             curr_value = self.value(s, a)
 
             # TODO converge without equality as well?
+            # random choice?
             if best_value == None or curr_value > best_value:
                 best = a
                 best_value = curr_value
@@ -152,6 +163,7 @@ class MDP:
         #print('updating values...')
         return self.compute_check_convergence(self.maxvalue, self.values)
 
+
     # TODO might not want to check convergence on both. convergence in one probably 
     # implies convergence in both (doesn't seem to, but i think policy update is broken)
 
@@ -159,9 +171,15 @@ class MDP:
     # on Wiki under value iteration
     def value_iteration(self, n=None):
         i = 0
+        #util.show_frozenlake(self.values)
+        #util.show_frozenlake(self.policy)
+
         while n is None or i < n:
             pconverged = self.update_policy()
             vconverged = self.update_values()
+            #util.show_frozenlake(self.values)
+            #util.show_frozenlake(self.policy)
+
             i += 1
             #print(pconverged, vconverged)
             if pconverged and vconverged:

@@ -64,3 +64,16 @@ def gym_P_to_RP(gym_P):
                 print(a, s, P[a, s, :])
 
     return R, P
+
+
+def show_frozenlake(d):
+    rows = 4
+    cols = 4
+    for i in range(rows):
+        for j in range(cols):
+            state = i * cols + j
+            print(d[state], end=' ')
+        print('')
+    print('')
+
+
