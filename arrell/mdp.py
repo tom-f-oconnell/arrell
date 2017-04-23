@@ -22,7 +22,7 @@ class MDP:
         self.P = P
         self.R = R
 
-        self.check_P()
+        #self.check_P()
         
         self.discount = discount
 
@@ -33,7 +33,12 @@ class MDP:
     def initial_policy(self, S):
         policy = dict()
         for s in S:
-            policy[s] = np.random.choice(self.possible_actions(s))
+            actions = self.possible_actions(s)
+            if len(actions) == 0:
+                policy[s] = -1
+            else:
+                policy[s] = np.random.choice(actions)
+
         return policy
 
 
@@ -42,6 +47,31 @@ class MDP:
         for s in S:
             values[s] = 0
         return values
+
+
+    def check_P(self):
+        # TODO is that the right notation?
+        """
+        Asserts the P(s' | s, a) sums to 1 for each s
+        """
+        # TODO why do a few rows not sum to 1?
+        for s in self.S:
+            for a in self.A:
+                #print(np.sum(self.P[a,s,:]))
+                if np.sum(self.P[a,s,:]) != 1:
+                    print(a, s, self.P[a,s,:])
+                #assert np.sum(self.P[a,s,:]) == 1
+
+        '''
+        tot = np.sum(self.P, axis=0)
+        print('tot', tot.shape)
+        # check out what the diagonal elements are doing
+        for s in self.S:
+            print(tot[s,s])
+
+        print('sum of all P', np.sum(self.P))
+        print('sum of all R', np.sum(self.R))
+        '''
 
 
     # TODO fix
@@ -85,7 +115,7 @@ class MDP:
 
     def pi(self, s):
         actions = self.possible_actions(s)
-        best = None
+        best = -1
         best_value = None
         # for each action possible in current state
         for a in actions:
@@ -95,7 +125,7 @@ class MDP:
             if best_value == None or curr_value > best_value:
                 best = a
                 best_value = curr_value
-        return a
+        return best
 
 
     def compute_check_convergence(self, fn, store):
@@ -105,11 +135,6 @@ class MDP:
         converged = True
         for s in self.S:
             new = fn(s)
-            '''
-            print('state', s)
-            print('new', new)
-            print('old', store[s])
-            '''
             if store[s] != new:
                 converged = False
             store[s] = new
@@ -119,13 +144,12 @@ class MDP:
     # TODO might not want to check convergence on both. convergence in one probably 
     # implies convergence in both
     def update_policy(self):
-        print('updating policy...')
-        # TODO self.pi might not work. may count as partial application.
+        #print('updating policy...')
         return self.compute_check_convergence(self.pi, self.policy)
 
 
     def update_values(self):
-        print('updating values...')
+        #print('updating values...')
         return self.compute_check_convergence(self.maxvalue, self.values)
 
     # TODO might not want to check convergence on both. convergence in one probably 
@@ -138,31 +162,10 @@ class MDP:
         while n is None or i < n:
             pconverged = self.update_policy()
             vconverged = self.update_values()
-            print(pconverged, vconverged)
+            i += 1
+            #print(pconverged, vconverged)
             if pconverged and vconverged:
                 print('policy converged after', i, 'iterations')
                 break
-            i += 1
-        return self.policy, self.values
+        return i, self.policy, self.values
 
-    def check_P(self):
-        # TODO is that the right notation?
-        """
-        Asserts the P(s' | s, a) sums to 1 for each s
-        """
-        # TODO why do a few rows not sum to 1?
-        for s in self.S:
-            for a in self.A:
-                #print(np.sum(self.P[a,s,:]))
-                if np.sum(self.P[a,s,:]) != 1:
-                    print(a, s, self.P[a,s,:])
-                #assert np.sum(self.P[a,s,:]) == 1
-
-        tot = np.sum(self.P, axis=0)
-        print('tot', tot.shape)
-        # check out what the diagonal elements are doing
-        for s in self.S:
-            print(tot[s,s])
-
-        print('sum of all P', np.sum(self.P))
-        print('sum of all R', np.sum(self.R))
