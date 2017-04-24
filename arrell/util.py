@@ -2,7 +2,6 @@
 import numpy as np
 
 
-# TODO check P represents valid probabilities leaving each state (sum to 1)
 def gym_P_to_RP(gym_P):
     """
     Takes the old OpenAI gym P variable associated with an environment, in format:
@@ -76,4 +75,25 @@ def show_frozenlake(d):
         print('')
     print('')
 
+
+def check_P(P):
+    """
+    Asserts the P(s' | s, a) sums to 1 for each s
+    """
+    for s in range(P.shape[0]):
+        for a in range(P.shape[1]):
+            #if np.sum(self.P[a,s,:]) != 1:
+            #    print(a, s, self.P[a,s,:])
+            assert np.isclose(np.sum(self.P[a,s,:]), 1)
+
+    '''
+    tot = np.sum(self.P, axis=0)
+    print('tot', tot.shape)
+    # check out what the diagonal elements are doing
+    for s in self.S:
+        print(tot[s,s])
+
+    print('sum of all P', np.sum(self.P))
+    print('sum of all R', np.sum(self.R))
+    '''
 

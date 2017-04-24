@@ -13,22 +13,19 @@ class MDP:
     R : reward for taking action a in s, ending in s' (A x S x S) -> real
     discount : how import are past rewards? more -> closer to 1, less -> closer to zero.
     """
-    def __init__(self, nS, nA, P, R, discount):
+    def __init__(self, nS, nA, discount):
         assert 0 <= discount, 'discount must be non-negative'
-        #assert discount < 1, 'value would runaway in infinite time'
+        assert discount <= 1, 'value too large'
 
         self.S = np.arange(nS)
         # TODO are actions really necessary in MDPs? can you turn them in to states?
         self.A = np.arange(nA)
-        self.P = P
-        self.R = R
-
-        #self.check_P()
-        
         self.discount = discount
 
         self.policy = self.initial_policy(self.S)
         self.values = self.initial_values(self.S)
+
+        self.state = None
 
 
     def initial_policy(self, S):
@@ -50,29 +47,39 @@ class MDP:
         return values
 
 
-    def check_P(self):
-        # TODO is that the right notation?
-        """
-        Asserts the P(s' | s, a) sums to 1 for each s
-        """
-        # TODO why do a few rows not sum to 1?
-        for s in self.S:
-            for a in self.A:
-                #print(np.sum(self.P[a,s,:]))
-                if np.sum(self.P[a,s,:]) != 1:
-                    print(a, s, self.P[a,s,:])
-                #assert np.sum(self.P[a,s,:]) == 1
+    def possible_actions(self, s):
+        return self.A
 
-        '''
-        tot = np.sum(self.P, axis=0)
-        print('tot', tot.shape)
-        # check out what the diagonal elements are doing
-        for s in self.S:
-            print(tot[s,s])
+    
+    def step(self, env):
+        if self.state is None:
+            raise ValueError('agent state was not initialized. do agent.state = s0.')
+        a = self.policy[self.state]
+        s, r, done, info = env.step(a)
+        # TODO need update defined in this super class for it to work?
+        self.update(a, s, r)
+        self.state = s
+        return s, r, done, info
 
-        print('sum of all P', np.sum(self.P))
-        print('sum of all R', np.sum(self.R))
-        '''
+
+class FullMDP(MDP):
+    """
+    Algorithms for finding policies for MDPs if you know state transition policies given actions
+    and expected rewards.
+    """
+    def __init__(self, nS, nA, P, R, discount, learning_rate):
+        #util.check_P(P)
+        self.P = P
+        self.R = R
+        self.learning_rate = learning_rate
+        super().__init__(nS, nA, discount)
+
+
+    # TODO reasons i cant define this as 'a' index of P where P(a,s,:) has >= 1 nonzero?
+    # maybe just inefficient in some cases
+    def possible_actions(self, s):
+        positive = np.argwhere(np.sum(self.P, axis=2).squeeze()).T
+        return positive[0, positive[1,:] == s]
 
 
     # TODO fix
@@ -84,13 +91,6 @@ class MDP:
             # a_curr should be the entry from the policy, evaluated at time t from state s
             total = gamma**t * R(a_curr, s_curr, s_next)
         return total
-
-
-    # TODO reasons i cant define this as 'a' index of P where P(a,s,:) has >= 1 nonzero?
-    # maybe just inefficient in some cases
-    def possible_actions(self, s):
-        positive = np.argwhere(np.sum(self.P, axis=2).squeeze()).T
-        return positive[0, positive[1,:] == s]
 
 
     # TODO use matrix math
@@ -166,7 +166,6 @@ class MDP:
 
     # TODO might not want to check convergence on both. convergence in one probably 
     # implies convergence in both (doesn't seem to, but i think policy update is broken)
-
     # TODO it seemed that these two steps are equivalent to single equation 
     # on Wiki under value iteration
     def value_iteration(self, n=None):
@@ -180,10 +179,49 @@ class MDP:
             #util.show_frozenlake(self.values)
             #util.show_frozenlake(self.policy)
 
+            for v in self.values.values():
+                assert not np.isnan(v)
+
             i += 1
             #print(pconverged, vconverged)
             if pconverged and vconverged:
                 print('policy converged after', i, 'iterations')
                 break
         return i, self.policy, self.values
+
+
+    def unprincipled_P_update(self, a, s):
+        self.P[a, self.state, s] += self.learning_rate
+        new_total = np.sum(self.P[a, self.state, :])
+        for sp in self.S:
+            self.P[a, self.state, sp] /= new_total
+        assert np.isclose(np.sum(self.P[a, self.state, :]), 1.0)
+
+
+    def unprincipled_R_update(self, a, s, r):
+        self.R[a, self.state, s] = (1 - self.learning_rate) * self.R[a, self.state, s] + \
+                self.learning_rate * r
+
+
+    # TODO list available updates
+    def update_P(a, s):
+        raise ValueError('set update_P first as agent.update_P = <your choice of function>.' + \
+                ' agent.unprincipled_P_update should work.')
+
+
+    def update_R(a, s, r):
+        raise ValueError('set update_R first as agent.update_R = <your choice of function>.' + \
+                ' agent.unprincipled_R_update should work')
+    
+
+    def update(self, a, s, r):
+        # TODO possible to do some kind of more principled P and R updates?
+        # update models of transition probability and rewards
+        #self.unprincipled_P_update(a, s)
+        #self.unprincipled_R_update(a, s, r)
+        self.update_P(a, s)
+        self.update_R(a, s, r)
+
+        # recalculate optimal policy
+        self.value_iteration()
 
