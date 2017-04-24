@@ -13,7 +13,7 @@ class QLearner(mdp.MDP):
     def best_action(self, s):
         # noise following profile used in a medium.com tutorial post
         # not sure if there is some specific reason for it
-        return np.argmax(self.Q[s, :] + np.random.randn(1, len(self.A)) * (1./(self.i / 500 + 1)))
+        return np.argmax(self.Q[s, :] + np.random.randn(1, len(self.A)) * (1./(self.i / 1. + 1)))
 
     def update(self, a, s, r):
         """

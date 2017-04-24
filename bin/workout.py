@@ -23,8 +23,8 @@ def run(env, agent, episodes, max_steps):
             if done:
                 values.append(V)
                 break
-        if not done:
-            print('finished without reaching terminal state')
+        #if not done:
+        #    print('finished without reaching terminal state')
 
     return values
 
@@ -51,6 +51,8 @@ value_iter = arrell.mdp.FullMDP(env.observation_space.n, env.action_space.n, \
 value_iter.update_P = value_iter.unprincipled_P_update
 value_iter.update_R = value_iter.unprincipled_R_update
 '''
+# contains both of the former two updates, plus recalculating the optimal policy
+# this line prevents all of this from happening
 value_iter.update = lambda a,s,r: None
 
 # build initial policy from initial P and R
@@ -58,11 +60,12 @@ value_iter.value_iteration()
 
 discount = 0.99
 learning_rate = 0.85
-qlearn = arrell.qlearn.QLearner(env.observation_space.n, env.action_space.n, discount, learning_rate)
+qlearn = arrell.qlearn.QLearner(env.observation_space.n, env.action_space.n, \
+        discount, learning_rate)
 
 
-episodes = 5000
-max_steps = 1000
+episodes = 2000
+max_steps = 99
 #agents = [value_iter, qlearn]
 agents = [qlearn]
 
