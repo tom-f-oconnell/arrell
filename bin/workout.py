@@ -57,13 +57,14 @@ value_iter.update = lambda a,s,r: None
 value_iter.value_iteration()
 
 discount = 0.99
-learning_rate = 0.1
+learning_rate = 0.85
 qlearn = arrell.qlearn.QLearner(env.observation_space.n, env.action_space.n, discount, learning_rate)
 
 
-episodes = 1
+episodes = 5000
 max_steps = 1000
-agents = [value_iter, qlearn]
+#agents = [value_iter, qlearn]
+agents = [qlearn]
 
 for a in agents:
     print(stats(run(env, a, episodes, max_steps)))

@@ -26,6 +26,7 @@ class MDP:
         self.values = self.initial_values(self.S)
 
         self.state = None
+        self.i = 0
 
 
     def initial_policy(self, S):
@@ -59,6 +60,7 @@ class MDP:
         # TODO need update defined in this super class for it to work?
         self.update(a, s, r)
         self.state = s
+        self.i += 1
         return s, r, done, info
 
 
